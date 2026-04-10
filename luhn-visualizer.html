@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LUHN · Algorithm Visualizer</title>
+  <meta name="description"
+    content="Interactive step-by-step animated visualizer for the Luhn algorithm — the checksum validating every credit card on earth since 1954." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── COLOR SYSTEM ─────────────────────────────────────────────────── */
+    :root {
+      --bg: #080a0f;
+      --surface: #0d1017;
+      --border-idle: #1e2330;
+      --border-active: #4fffb0;
+      --border-done: #1e3d30;
+      --digit-idle: #6b7899;
+      --digit-active: #f0f0f0;
+      --digit-done: #7a9a8a;
+      --double-accent: #e8a000;
+      --sum-label: #6b7899;
+      --sum-value: #f0f0f0;
+      --valid: #4fffb0;
+      --invalid: #ff2d55;
+      --verdict-valid: #4fffb0;
+      --verdict-invalid: #ff2d55;
+    }
+
+    /* ─── RESET & BASE ─────────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--digit-active);
+      font-family: 'IBM Plex Mono', monospace;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 60px 24px 80px;
+    }
+
+    /* ─── HEADER ────────────────────────────────────────────────────────── */
+    .header {
+      width: 100%;
+      max-width: 720px;
+      margin-bottom: 52px;
+    }
+
+    .header__title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--digit-active);
+      margin-bottom: 10px;
+    }
+
+    .header__sub {
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--sum-label);
+    }
+
+    /* ─── COLUMN ─────────────────────────────────────────────────────────  */
+    .column {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* ─── INPUT SECTION ─────────────────────────────────────────────────── */
+    .input-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .input-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    #card-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border-idle);
+      border-radius: 0;
+      color: var(--digit-active);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 400;
+      padding: 14px 16px;
+      outline: none;
+      letter-spacing: 0.08em;
+      transition: border-color 150ms ease-out;
+    }
+
+    #card-input::placeholder {
+      color: var(--digit-idle);
+      letter-spacing: 0.06em;
+    }
+
+    #card-input:focus {
+      border-color: var(--border-active);
+    }
+
+    #card-input:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #card-input.shake {
+      animation: input-shake 80ms linear 0s 4 alternate;
+    }
+
+    @keyframes input-shake {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(4px);
+      }
+    }
+
+    .error-line {
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--invalid);
+      height: 18px;
+      line-height: 18px;
+      padding-top: 6px;
+      opacity: 0;
+      transition: opacity 150ms ease-out;
+    }
+
+    .error-line.visible {
+      opacity: 1;
+    }
+
+    /* ─── BUTTONS ────────────────────────────────────────────────────────── */
+    #run-btn,
+    #reset-btn {
+      align-self: flex-start;
+      background: none;
+      border: 1px solid var(--border-idle);
+      border-radius: 0;
+      color: var(--sum-label);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: border-color 150ms ease-out, color 150ms ease-out;
+    }
+
+    #run-btn:hover,
+    #reset-btn:hover {
+      border-color: var(--border-active);
+      color: var(--digit-active);
+    }
+
+    #reset-btn {
+      display: none;
+    }
+
+    /* ─── SPEED CONTROLS ─────────────────────────────────────────────────── */
+    .speed-controls {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: 4px;
+    }
+
+    .speed-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--border-idle);
+    }
+
+    .speed-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sum-label);
+      padding: 0;
+      text-decoration: none;
+      transition: color 150ms ease-out;
+    }
+
+    .speed-btn:hover {
+      color: var(--digit-done);
+    }
+
+    .speed-btn.active {
+      color: var(--border-active);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* ─── DIVIDER ────────────────────────────────────────────────────────── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border-idle);
+      margin-bottom: 40px;
+      opacity: 0;
+      transition: opacity 300ms ease-out;
+    }
+
+    .divider.visible {
+      opacity: 1;
+    }
+
+    /* ─── DIGIT ROW ──────────────────────────────────────────────────────── */
+    .digit-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-bottom: 48px;
+      opacity: 0;
+      transition: opacity 200ms ease-out;
+    }
+
+    .digit-section.visible {
+      opacity: 1;
+    }
+
+    .digit-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .digit-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .digit-box {
+      width: 46px;
+      height: 56px;
+      background: var(--surface);
+      border: 1px solid var(--border-idle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      font-weight: 500;
+      color: var(--digit-idle);
+      position: relative;
+      /* NO transition on border — instant tick */
+    }
+
+    .digit-box.active {
+      border-color: var(--border-active);
+      color: var(--digit-active);
+    }
+
+    .digit-box.done {
+      border-color: var(--border-done);
+      color: var(--digit-done);
+      transition: border-color 150ms ease-out, color 150ms ease-out;
+    }
+
+    .digit-box.done.doubled {
+      color: var(--double-accent);
+      transition: border-color 150ms ease-out, color 150ms ease-out;
+    }
+
+    .digit-box.flash-valid {
+      border-color: var(--border-active);
+      transition: none;
+    }
+
+    .digit-box.flash-back {
+      border-color: var(--border-done);
+      transition: border-color 150ms ease-out;
+    }
+
+    .digit-box.shake-invalid {
+      animation: cell-shake 80ms linear 0s 4 alternate;
+    }
+
+    @keyframes cell-shake {
+      from {
+        transform: translateX(-3px);
+      }
+
+      to {
+        transform: translateX(3px);
+      }
+    }
+
+    /* ─── TRANSFORMED VALUE ─────────────────────────────────────────────── */
+    .digit-transform {
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: var(--double-accent);
+      letter-spacing: 0.04em;
+      min-width: 46px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* ─── CHECK DIGIT LABEL ──────────────────────────────────────────────── */
+    .check-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sum-label);
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 46px;
+    }
+
+    /* ─── POSITION INDICATOR ─────────────────────────────────────────────── */
+    .pos-label {
+      font-size: 0.5rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--border-idle);
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 46px;
+    }
+
+    /* ─── SUM SECTION ────────────────────────────────────────────────────── */
+    .sum-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 48px;
+      opacity: 0;
+      transition: opacity 200ms ease-out;
+    }
+
+    .sum-section.visible {
+      opacity: 1;
+    }
+
+    .sum-label-text {
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--sum-label);
+    }
+
+    .sum-value-text {
+      font-size: 1.8rem;
+      font-weight: 400;
+      color: var(--sum-value);
+      line-height: 1;
+    }
+
+    /* ─── MOD LINE ───────────────────────────────────────────────────────── */
+    .mod-line {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      color: var(--sum-label);
+      margin-top: 8px;
+      height: 18px;
+      opacity: 0;
+    }
+
+    .mod-line.visible {
+      opacity: 1;
+    }
+
+    /* ─── VERDICT ────────────────────────────────────────────────────────── */
+    .verdict-section {
+      margin-bottom: 40px;
+      opacity: 0;
+    }
+
+    .verdict-section.visible {
+      opacity: 1;
+    }
+
+    .verdict-text {
+      font-size: 3.5rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0.06em;
+    }
+
+    .verdict-text.valid {
+      color: var(--verdict-valid);
+    }
+
+    .verdict-text.invalid {
+      color: var(--verdict-invalid);
+    }
+
+    /* ─── EXPLAINER PANEL ──────────────────────────────────────────────────── */
+    .explainer {
+      width: 100%;
+      margin-bottom: 28px;
+    }
+
+    .explainer__toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border-idle);
+      padding: 12px 16px;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--sum-label);
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      transition: border-color 150ms ease-out, color 150ms ease-out;
+    }
+
+    .explainer__toggle:hover {
+      border-color: var(--border-active);
+      color: var(--digit-active);
+    }
+
+    .explainer__toggle.open {
+      border-color: var(--border-active);
+      color: var(--digit-active);
+      border-bottom: none;
+    }
+
+    .explainer__icon {
+      font-size: 1.1rem;
+      font-weight: 300;
+      line-height: 1;
+    }
+
+    .explainer__body {
+      display: none;
+      border: 1px solid var(--border-active);
+      border-top: none;
+      padding: 28px 24px;
+    }
+
+    .explainer__body.open {
+      display: block;
+    }
+
+    .explainer__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    @media (max-width: 620px) {
+      .explainer__grid { grid-template-columns: 1fr; }
+    }
+
+    .explainer__col-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--sum-label);
+      margin-bottom: 12px;
+    }
+
+    /* ── Code block ─────────────────────────────────────────── */
+    .explainer__code {
+      background: var(--bg);
+      border: 1px solid var(--border-idle);
+      padding: 16px 18px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      line-height: 1.75;
+      color: var(--digit-active);
+      overflow-x: auto;
+      white-space: pre;
+      margin: 0;
+    }
+
+    .tok-kw  { color: var(--border-active); }   /* keywords     → mint   */
+    .tok-fn  { color: #a0c4ff; }                /* function name → blue  */
+    .tok-cm  { color: var(--digit-done); }      /* comments      → muted */
+    .tok-nm  { color: var(--double-accent); }   /* numbers       → amber */
+    .tok-op  { color: var(--sum-label); }       /* operators     → dim   */
+    .tok-str { color: #e8c07a; }                /* strings       → warm  */
+
+    /* ── Step cards ─────────────────────────────────────────── */
+    .explainer__steps {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .explainer__step {
+      display: flex;
+      gap: 14px;
+    }
+
+    .explainer__step-num {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--border-active);
+      letter-spacing: 0.08em;
+      padding-top: 3px;
+      min-width: 18px;
+    }
+
+    .explainer__step-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--digit-active);
+      margin-bottom: 4px;
+    }
+
+    .explainer__step-desc {
+      font-size: 0.7rem;
+      line-height: 1.65;
+      color: var(--sum-label);
+    }
+
+    .explainer__step-desc code {
+      color: var(--double-accent);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* ─── ACCESS GRANTED ────────────────────────────────────────────────── */
+    .access-granted {
+      display: none;
+      margin-top: 24px;
+      padding: 20px 24px;
+      border: 1px solid var(--border-active);
+    }
+    .access-granted.visible { display: block; }
+    .access-granted__badge {
+      font-size: 0.55rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--border-active);
+      display: block;
+      margin-bottom: 8px;
+    }
+    .access-granted__msg {
+      font-size: 0.75rem;
+      color: var(--digit-done);
+      margin-bottom: 16px;
+      line-height: 1.6;
+      letter-spacing: 0.04em;
+    }
+    .access-granted__btn {
+      background: none;
+      border: 1px solid var(--border-active);
+      color: var(--border-active);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background 150ms ease-out, color 150ms ease-out;
+    }
+    .access-granted__btn:hover { background: var(--border-active); color: var(--bg); }
+
+    /* ─── CARD CUSTOMIZER ────────────────────────────────────────────────── */
+    .card-section {
+      display: none;
+      margin-top: 40px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border-idle);
+    }
+    .card-section.visible { display: block; }
+    .card-section__heading {
+      font-size: 0.55rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--sum-label);
+      margin-bottom: 28px;
+    }
+    .card-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .card-form__input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border-idle);
+      color: var(--digit-active);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1rem;
+      padding: 12px 16px;
+      outline: none;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: border-color 150ms ease-out;
+    }
+    .card-form__input::placeholder { color: var(--digit-idle); }
+    .card-form__input:focus { border-color: var(--border-active); }
+    .card-form__toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sum-label);
+      user-select: none;
+    }
+    .card-form__toggle input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border: 1px solid var(--border-idle);
+      background: var(--surface);
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      transition: border-color 150ms ease-out;
+    }
+    .card-form__toggle input[type="checkbox"]:checked {
+      border-color: var(--border-active);
+      background: var(--border-active);
+    }
+    .card-form__toggle input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 3px; top: 1px;
+      width: 5px; height: 8px;
+      border: 2px solid var(--bg);
+      border-top: none; border-left: none;
+      transform: rotate(45deg);
+    }
+    /* ── Card preview ── */
+    .card-preview-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    .card-preview {
+      width: min(460px, 100%);
+      aspect-ratio: 460 / 290;
+      background: var(--surface);
+      border: 1px solid var(--border-idle);
+      position: relative;
+      overflow: hidden;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .card-preview::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--border-active);
+    }
+    .card__brand {
+      position: absolute;
+      top: 6%; left: 6%;
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--digit-done);
+    }
+    .card__network {
+      position: absolute;
+      top: 5%; right: 6%;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--border-active);
+      text-align: right;
+      line-height: 1.2;
+    }
+    .card__chip {
+      position: absolute;
+      top: 22%; left: 6%;
+      width: 10%; aspect-ratio: 44/34;
+      background: linear-gradient(135deg, #d4a017, #b8860b 50%, #8b6914);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .card__chip::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(90deg, rgba(150,112,10,0.6) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(150,112,10,0.6) 1px, transparent 1px);
+      background-size: 33.3% 50%;
+    }
+    .card__chip::after {
+      content: '';
+      position: absolute;
+      top: 18%; left: 14%; right: 14%; bottom: 18%;
+      border: 1px solid rgba(150,112,10,0.8);
+      border-radius: 2px;
+    }
+    .card__number {
+      position: absolute;
+      top: 50%; left: 6%; right: 6%;
+      font-size: clamp(0.65rem, 2.8vw, 1.25rem);
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      color: var(--digit-active);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .card__bottom {
+      position: absolute;
+      bottom: 9%; left: 6%; right: 6%;
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .card__field-label {
+      font-size: 0.38rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--sum-label);
+      margin-bottom: 2px;
+    }
+    .card__name {
+      font-size: clamp(0.5rem, 2.2vw, 0.8rem);
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--digit-active);
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .card__expiry {
+      font-size: clamp(0.45rem, 2vw, 0.72rem);
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--digit-active);
+    }
+    .card__spacer { flex: 1; }
+    .card-download-btn {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border-active);
+      color: var(--border-active);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: background 150ms ease-out, color 150ms ease-out;
+    }
+    .card-download-btn:hover { background: var(--border-active); color: var(--bg); }
+
+    /* ─── FOOTER ─────────────────────────────────────────────────────────── */
+    .site-footer {
+      width: 100%;
+      max-width: 720px;
+      margin-top: 64px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-idle);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .site-footer__label {
+      color: var(--sum-label);
+    }
+
+    .site-footer__link {
+      color: var(--border-active);
+      text-decoration: none;
+    }
+
+    .site-footer__link:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <p class="header__title">LUHN · ALGORITHM VISUALIZER</p>
+    <p class="header__sub">Hans Peter Luhn, IBM, 1954 — still running</p>
+  </header>
+
+  <!-- MAIN COLUMN -->
+  <main class="column" role="main">
+
+    <!-- INPUT SECTION -->
+    <section class="input-section" aria-label="Card number input">
+      <div class="input-row">
+        <input id="card-input" type="text" autocomplete="off" spellcheck="false" placeholder="4532 0151 1283 0366"
+          maxlength="24" aria-label="Credit card number" />
+        <div class="error-line" id="error-line" role="alert" aria-live="polite"></div>
+      </div>
+
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <button id="run-btn" aria-label="Run Luhn analysis">Run Analysis</button>
+        <button id="reset-btn" aria-label="Run analysis again">Run Again</button>
+      </div>
+
+      <div class="speed-controls" role="group" aria-label="Animation speed">
+        <span class="speed-label">Speed</span>
+        <button class="speed-btn" id="speed-slow" data-speed="slow">Slow</button>
+        <button class="speed-btn active" id="speed-normal" data-speed="normal">Normal</button>
+        <button class="speed-btn" id="speed-fast" data-speed="fast">Fast</button>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <div class="explainer" id="explainer">
+      <button class="explainer__toggle" id="explainer-toggle"
+        aria-expanded="false" aria-controls="explainer-body">
+        <span>How the algorithm works</span>
+        <span class="explainer__icon" id="explainer-icon">+</span>
+      </button>
+      <div class="explainer__body" id="explainer-body" role="region">
+        <div class="explainer__grid">
+
+          <!-- LEFT: Code -->
+          <div>
+            <div class="explainer__col-label">The Code</div>
+<pre class="explainer__code"><span class="tok-kw">function</span> <span class="tok-fn">luhn</span><span class="tok-op">(</span>cardNumber<span class="tok-op">) {</span>
+  <span class="tok-cm">// 1. Strip spaces/dashes, split into digits</span>
+  <span class="tok-kw">const</span> digits <span class="tok-op">=</span> cardNumber
+    <span class="tok-op">.</span><span class="tok-fn">replace</span><span class="tok-op">(/</span><span class="tok-str">\D</span><span class="tok-op">/g,</span> <span class="tok-str">''</span><span class="tok-op">)</span>
+    <span class="tok-op">.</span><span class="tok-fn">split</span><span class="tok-op">(</span><span class="tok-str">''</span><span class="tok-op">)</span>
+    <span class="tok-op">.</span><span class="tok-fn">map</span><span class="tok-op">(</span>Number<span class="tok-op">)</span>
+    <span class="tok-op">.</span><span class="tok-fn">reverse</span><span class="tok-op">();</span>  <span class="tok-cm">// ← rightmost = index 0</span>
+
+  <span class="tok-kw">let</span> sum <span class="tok-op">=</span> <span class="tok-nm">0</span><span class="tok-op">;</span>
+
+  <span class="tok-kw">for</span> <span class="tok-op">(</span><span class="tok-kw">let</span> i <span class="tok-op">=</span> <span class="tok-nm">0</span><span class="tok-op">;</span> i <span class="tok-op">&lt;</span> digits<span class="tok-op">.</span>length<span class="tok-op">;</span> i<span class="tok-op">++) {</span>
+    <span class="tok-kw">let</span> d <span class="tok-op">=</span> digits<span class="tok-op">[</span>i<span class="tok-op">];</span>
+
+    <span class="tok-cm">// 2. Every second digit (skip index 0) gets doubled</span>
+    <span class="tok-kw">if</span> <span class="tok-op">(</span>i <span class="tok-op">%</span> <span class="tok-nm">2</span> <span class="tok-op">===</span> <span class="tok-nm">1</span><span class="tok-op">) {</span>
+      d <span class="tok-op">=</span> d <span class="tok-op">*</span> <span class="tok-nm">2</span><span class="tok-op">;</span>
+
+      <span class="tok-cm">// 3. If &gt; 9, subtract 9 (same as summing both digits)</span>
+      <span class="tok-kw">if</span> <span class="tok-op">(</span>d <span class="tok-op">&gt;</span> <span class="tok-nm">9</span><span class="tok-op">)</span> d <span class="tok-op">=</span> d <span class="tok-op">-</span> <span class="tok-nm">9</span><span class="tok-op">;</span>
+    <span class="tok-op">}</span>
+
+    <span class="tok-cm">// 4. Add to running total</span>
+    sum <span class="tok-op">=</span> sum <span class="tok-op">+</span> d<span class="tok-op">;</span>
+  <span class="tok-op">}</span>
+
+  <span class="tok-cm">// 5. Valid only if total divides evenly by 10</span>
+  <span class="tok-kw">return</span> sum <span class="tok-op">%</span> <span class="tok-nm">10</span> <span class="tok-op">===</span> <span class="tok-nm">0</span><span class="tok-op">;</span>
+<span class="tok-op">}</span></pre>
+          </div>
+
+          <!-- RIGHT: Plain English -->
+          <div>
+            <div class="explainer__col-label">Plain English</div>
+            <ol class="explainer__steps">
+              <li class="explainer__step">
+                <span class="explainer__step-num">01</span>
+                <div>
+                  <div class="explainer__step-title">Read right to left</div>
+                  <div class="explainer__step-desc">Reverse the digits so the rightmost (the "check digit") is always at position 0. This makes the position math simple — even indexes are untouched, odd indexes get doubled.</div>
+                </div>
+              </li>
+              <li class="explainer__step">
+                <span class="explainer__step-num">02</span>
+                <div>
+                  <div class="explainer__step-title">Skip the check digit</div>
+                  <div class="explainer__step-desc">Index 0 — the last digit of the original number — is the check digit. It was chosen by whoever issued the card specifically so the whole sum lands on a multiple of 10. Never transform it.</div>
+                </div>
+              </li>
+              <li class="explainer__step">
+                <span class="explainer__step-num">03</span>
+                <div>
+                  <div class="explainer__step-title">Double every second digit</div>
+                  <div class="explainer__step-desc">Indexes 1, 3, 5… (every other, starting from the second) get multiplied by 2. This alternating pattern is what gives the algorithm its error-detection power — a single wrong digit almost always changes the total.</div>
+                </div>
+              </li>
+              <li class="explainer__step">
+                <span class="explainer__step-num">04</span>
+                <div>
+                  <div class="explainer__step-title">Tame large doubles</div>
+                  <div class="explainer__step-desc">If doubling gives <code>10</code> or more, subtract <code>9</code>. This is identical to adding the two digits together — <code>7×2=14</code>, and <code>1+4=5</code>, and <code>14−9=5</code>. It keeps every value single-digit.</div>
+                </div>
+              </li>
+              <li class="explainer__step">
+                <span class="explainer__step-num">05</span>
+                <div>
+                  <div class="explainer__step-title">Sum everything</div>
+                  <div class="explainer__step-desc">Add all processed digits together — both the transformed and the untouched ones — into a single running total. This is the number you see counting up in the animation.</div>
+                </div>
+              </li>
+              <li class="explainer__step">
+                <span class="explainer__step-num">06</span>
+                <div>
+                  <div class="explainer__step-title">Check mod 10</div>
+                  <div class="explainer__step-desc">If the total is exactly divisible by 10 (remainder = 0), the number is <strong style="color:var(--valid)">VALID</strong>. Any other remainder means <strong style="color:var(--invalid)">INVALID</strong>. Change a single digit anywhere and the sum shifts — the check fails.</div>
+                </div>
+              </li>
+            </ol>
+          </div>
+
+        </div><!-- /.explainer__grid -->
+      </div><!-- /.explainer__body -->
+    </div><!-- /.explainer -->
+
+    <!-- DIVIDER -->
+    <div class="divider" id="divider" aria-hidden="true"></div>
+
+    <!-- DIGIT SECTION -->
+    <section class="digit-section" id="digit-section" aria-label="Digit processing visualization">
+      <div class="digit-row" id="digit-row"></div>
+    </section>
+
+    <!-- SUM SECTION -->
+    <section class="sum-section" id="sum-section" aria-label="Running sum">
+      <span class="sum-label-text">Running Σ</span>
+      <span class="sum-value-text" id="sum-value">0</span>
+      <div class="mod-line" id="mod-line"></div>
+    </section>
+
+    <!-- VERDICT SECTION -->
+    <section class="verdict-section" id="verdict-section" aria-live="assertive">
+      <div class="verdict-text" id="verdict-text"></div>
+    </section>
+
+    <!-- ACCESS GRANTED (shown when a beautiful number is validated) -->
+    <div class="access-granted" id="access-granted">
+      <span class="access-granted__badge">★ Access Granted</span>
+      <p class="access-granted__msg">This is a verified beautiful number.<br>You may now design your personalised card.</p>
+      <button class="access-granted__btn" id="open-card-btn">Design Your Card →</button>
+    </div>
+
+    <!-- CARD CUSTOMIZER -->
+    <section class="card-section" id="card-section" aria-label="Card customizer">
+      <p class="card-section__heading">Card Customizer</p>
+      <div class="card-form">
+        <input
+          id="card-name-input"
+          class="card-form__input"
+          type="text"
+          placeholder="Your Name"
+          maxlength="26"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Cardholder name"
+        />
+        <label class="card-form__toggle">
+          <input type="checkbox" id="show-card-number" checked />
+          Show card number on card
+        </label>
+      </div>
+      <div class="card-preview-wrap">
+        <div class="card-preview" id="card-preview-el" aria-label="Card preview">
+          <span class="card__brand">Luhn · Verified</span>
+          <span class="card__network">LUHN<br>CARD</span>
+          <div class="card__chip"></div>
+          <div class="card__number" id="card-preview-number"></div>
+          <div class="card__bottom">
+            <div>
+              <div class="card__field-label">Cardholder</div>
+              <div class="card__name" id="card-preview-name">Your Name</div>
+            </div>
+            <div>
+              <div class="card__field-label">Valid Thru</div>
+              <div class="card__expiry">12/28</div>
+            </div>
+            <div class="card__spacer"></div>
+          </div>
+        </div>
+      </div>
+      <button class="card-download-btn" id="download-card-btn">↓ Download Card as PNG</button>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <span class="site-footer__label">Created by</span>
+    <a class="site-footer__link" href="https://hardikk.in" target="_blank" rel="noopener noreferrer">Hardik Tailor</a>
+  </footer>
+
+  <script>
+    // ─── SPEED CONFIG ──────────────────────────────────────────────────────
+    const SPEEDS = {
+      slow: { stepDelay: 1000, countDuration: 300, doubleDelay: 300, resolveDelay: 250 },
+      normal: { stepDelay: 600, countDuration: 150, doubleDelay: 200, resolveDelay: 200 },
+      fast: { stepDelay: 250, countDuration: 60, doubleDelay: 100, resolveDelay: 80 },
+    };
+
+    let currentSpeed = 'normal';
+    let isRunning = false;
+    let animationTimers = [];
+
+    const cfg = () => SPEEDS[currentSpeed];
+
+    // ─── DOM REFS ──────────────────────────────────────────────────────────
+    const cardInput = document.getElementById('card-input');
+    const runBtn = document.getElementById('run-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const errorLine = document.getElementById('error-line');
+    const divider = document.getElementById('divider');
+    const digitSection = document.getElementById('digit-section');
+    const digitRow = document.getElementById('digit-row');
+    const sumSection = document.getElementById('sum-section');
+    const sumValue = document.getElementById('sum-value');
+    const modLine = document.getElementById('mod-line');
+    const verdictSection = document.getElementById('verdict-section');
+    const verdictText = document.getElementById('verdict-text');
+    const speedBtns = document.querySelectorAll('.speed-btn');
+
+    // ─── BEAUTIFUL NUMBERS ─────────────────────────────────────────────────
+    // Add your curated valid Luhn numbers here (digits only, no spaces/dashes)
+    const BEAUTIFUL_NUMBERS = new Set([
+      // ← Replace / extend this list with your own beautiful numbers
+      '4532015112830366',
+      '4111111111111111',
+      '5500005555555559',
+    ]);
+
+    // ─── CARD CUSTOMIZER REFS ────────────────────────────────────────────
+    const accessGrantedEl  = document.getElementById('access-granted');
+    const openCardBtn      = document.getElementById('open-card-btn');
+    const cardSection      = document.getElementById('card-section');
+    const cardNameInput    = document.getElementById('card-name-input');
+    const showCardNumber   = document.getElementById('show-card-number');
+    const cardPreviewNum   = document.getElementById('card-preview-number');
+    const cardPreviewName  = document.getElementById('card-preview-name');
+    const downloadCardBtn  = document.getElementById('download-card-btn');
+    let currentCardDigits  = [];
+
+    // ─── SPEED BUTTONS ─────────────────────────────────────────────────────
+    speedBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (isRunning) return;
+        currentSpeed = btn.dataset.speed;
+        speedBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // ─── HELPERS ───────────────────────────────────────────────────────────
+    function delay(ms) {
+      return new Promise(resolve => {
+        const t = setTimeout(resolve, ms);
+        animationTimers.push(t);
+      });
+    }
+
+    function clearAllTimers() {
+      animationTimers.forEach(clearTimeout);
+      animationTimers = [];
+    }
+
+    function stripInput(raw) {
+      return raw.replace(/[\s\-]/g, '').replace(/\D/g, '');
+    }
+
+    function showError(msg) {
+      errorLine.textContent = msg;
+      errorLine.classList.add('visible');
+    }
+
+    function hideError() {
+      errorLine.textContent = '';
+      errorLine.classList.remove('visible');
+    }
+
+    function shakeInput() {
+      cardInput.classList.remove('shake');
+      void cardInput.offsetWidth; // reflow
+      cardInput.classList.add('shake');
+      cardInput.addEventListener('animationend', () => {
+        cardInput.classList.remove('shake');
+      }, { once: true });
+    }
+
+    // ─── COUNT-UP ANIMATION ───────────────────────────────────────────────
+    function animateCount(from, to, duration, el) {
+      return new Promise(resolve => {
+        if (from === to) { el.textContent = to; resolve(); return; }
+        const start = performance.now();
+        const range = to - from;
+        function tick(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          el.textContent = Math.round(from + range * progress);
+          if (progress < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            el.textContent = to;
+            resolve();
+          }
+        }
+        requestAnimationFrame(tick);
+      });
+    }
+
+    // ─── BUILD DIGIT ROW ──────────────────────────────────────────────────
+    function buildDigitRow(digits) {
+      digitRow.innerHTML = '';
+      const cells = [];
+
+      digits.forEach((d, i) => {
+        const posFromRight = digits.length - 1 - i; // 0 = rightmost
+
+        const cell = document.createElement('div');
+        cell.className = 'digit-cell';
+        cell.setAttribute('data-index', i);
+
+        const box = document.createElement('div');
+        box.className = 'digit-box';
+        box.id = `digit-box-${i}`;
+        box.setAttribute('aria-label', `Digit ${d}`);
+        box.textContent = d;
+
+        const transform = document.createElement('div');
+        transform.className = 'digit-transform';
+        transform.id = `digit-transform-${i}`;
+
+        const checkLbl = document.createElement('div');
+        checkLbl.className = 'check-label';
+        checkLbl.id = `check-label-${i}`;
+
+        const posLbl = document.createElement('div');
+        posLbl.className = 'pos-label';
+        posLbl.textContent = posFromRight % 2 === 1 && posFromRight !== 0 ? '×2' : '';
+
+        cell.appendChild(box);
+        cell.appendChild(transform);
+        cell.appendChild(checkLbl);
+        cell.appendChild(posLbl);
+
+        digitRow.appendChild(cell);
+        cells.push({ box, transform, checkLbl, digit: d, posFromRight });
+      });
+
+      return cells;
+    }
+
+    // ─── RESET UI ─────────────────────────────────────────────────────────
+    function resetUI() {
+      clearAllTimers();
+      isRunning = false;
+
+      // Hide/show elements
+      divider.classList.remove('visible');
+      digitSection.classList.remove('visible');
+      sumSection.classList.remove('visible');
+      verdictSection.classList.remove('visible');
+      modLine.classList.remove('visible');
+      verdictText.className = 'verdict-text';
+      verdictText.textContent = '';
+      sumValue.textContent = '0';
+      modLine.textContent = '';
+      digitRow.innerHTML = '';
+
+      runBtn.style.display = '';
+      resetBtn.style.display = 'none';
+      cardInput.disabled = false;
+      cardInput.value = '';
+      hideError();
+      // Card cleanup
+      accessGrantedEl.classList.remove('visible');
+      cardSection.classList.remove('visible');
+      currentCardDigits = [];
+      cardNameInput.value = '';
+      showCardNumber.checked = true;
+    }
+
+    // ─── MAIN ANIMATION ───────────────────────────────────────────────────
+    async function runAnalysis() {
+      const raw = cardInput.value;
+
+      // Validate: no invalid chars
+      if (/[^\d\s\-]/.test(raw)) {
+        shakeInput();
+        showError('Invalid characters — digits, spaces, or dashes only');
+        return;
+      }
+
+      const digits = stripInput(raw).split('').map(Number);
+
+      if (digits.length < 13) {
+        shakeInput();
+        showError('Minimum 13 digits required');
+        return;
+      }
+
+      hideError();
+      isRunning = true;
+
+      // Lock input, swap buttons
+      cardInput.disabled = true;
+      runBtn.style.display = 'none';
+      resetBtn.style.display = 'none';
+
+      // Show layout sections
+      divider.classList.add('visible');
+      digitSection.classList.add('visible');
+      sumSection.classList.add('visible');
+
+      const cells = buildDigitRow(digits);
+      sumValue.textContent = '0';
+      modLine.classList.remove('visible');
+      verdictSection.classList.remove('visible');
+      verdictText.textContent = '';
+
+      // ── FRAME 0: static digit row renders ─────────────────────────────
+      await delay(200);
+
+      // ── FRAME 1: mark check digit ──────────────────────────────────────
+      const checkCell = cells[cells.length - 1];
+      checkCell.checkLbl.textContent = 'CHECK';
+      await delay(500);
+
+      // ── TRAVERSE right to left ────────────────────────────────────────
+      let runningSum = 0;
+
+      for (let i = digits.length - 1; i >= 0; i--) {
+        const { box, transform, posFromRight, digit } = cells[i];
+        const needsDouble = posFromRight % 2 === 1; // every second from right, skipping check digit
+
+        // STEP A: Activate — INSTANT, no transition
+        box.style.transition = 'none';
+        box.classList.add('active');
+
+        if (needsDouble) {
+          // STEP B: doubling
+          await delay(cfg().doubleDelay);
+
+          let doubled = digit * 2;
+          box.textContent = doubled;
+          box.style.color = 'var(--double-accent)';
+
+          if (doubled > 9) {
+            // Show intermediate arrow
+            await delay(cfg().resolveDelay);
+            const final = doubled - 9;
+            transform.textContent = `${doubled} → ${final}`;
+            await delay(cfg().resolveDelay + 50);
+            box.textContent = final;
+            // color stays amber
+            await delay(cfg().doubleDelay);
+            runningSum += final;
+          } else {
+            await delay(cfg().doubleDelay);
+            runningSum += doubled;
+          }
+        } else {
+          // STEP C: untouched — just hold
+          await delay(cfg().doubleDelay * 1.5);
+          runningSum += digit;
+        }
+
+        // STEP D: sum increment
+        const prevSum = parseInt(sumValue.textContent, 10);
+        await animateCount(prevSum, runningSum, cfg().countDuration, sumValue);
+
+        // STEP E: transition to DONE
+        box.style.transition = '';
+        box.classList.remove('active');
+
+        if (needsDouble) {
+          box.classList.add('done', 'doubled');
+          box.style.color = ''; // let CSS var take over (--double-accent via .doubled)
+        } else {
+          box.classList.add('done');
+          box.style.color = '';
+        }
+
+        // STEP F: pause before next
+        if (i > 0) await delay(cfg().stepDelay - cfg().doubleDelay - cfg().countDuration - 50);
+      }
+
+      // ── FINAL ──────────────────────────────────────────────────────────
+      await delay(400);
+
+      // Show mod line
+      const mod = runningSum % 10;
+      const isValid = mod === 0;
+      modLine.textContent = `${runningSum} mod 10 = ${mod} — ${isValid ? 'VALID' : 'INVALID'}`;
+      modLine.classList.add('visible');
+
+      await delay(400);
+
+      // VERDICT — instant, no fade
+      verdictSection.style.transition = 'none';
+      verdictSection.classList.add('visible');
+      verdictText.textContent = isValid ? 'VALID' : 'INVALID';
+      verdictText.classList.add(isValid ? 'valid' : 'invalid');
+
+      await delay(150);
+
+      if (isValid) {
+        // Single flash all cells to border-active, then settle
+        cells.forEach(c => {
+          c.box.style.transition = 'none';
+          c.box.classList.add('flash-valid');
+        });
+        await delay(200);
+        cells.forEach(c => {
+          c.box.classList.remove('flash-valid');
+          c.box.classList.add('flash-back');
+        });
+      } else {
+        // Find which digit "fails" — highlight the check digit cell
+        const failCell = cells[cells.length - 1].box;
+        failCell.style.transition = 'none';
+        failCell.style.borderColor = 'var(--invalid)';
+        void failCell.offsetWidth;
+        failCell.classList.add('shake-invalid');
+        failCell.addEventListener('animationend', () => {
+          failCell.classList.remove('shake-invalid');
+        }, { once: true });
+      }
+
+      isRunning = false;
+      resetBtn.style.display = '';
+
+      // Unlock card designer if this is a beautiful number
+      if (isValid && BEAUTIFUL_NUMBERS.has(digits.join(''))) {
+        unlockCardDesigner(digits);
+      }
+    }
+
+    // ─── EVENT LISTENERS ──────────────────────────────────────────────────
+    runBtn.addEventListener('click', () => {
+      if (isRunning) return;
+      runAnalysis();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      resetUI();
+    });
+
+    cardInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !isRunning) {
+        runBtn.click();
+      }
+    });
+
+    // Allowed chars: digits, space, dash, control keys
+    cardInput.addEventListener('keypress', e => {
+      if (!/[\d\s\-]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        shakeInput();
+      }
+    });
+
+    // ─── EXPLAINER TOGGLE ─────────────────────────────────────────────────
+    const explainerToggle = document.getElementById('explainer-toggle');
+    const explainerBody   = document.getElementById('explainer-body');
+    const explainerIcon   = document.getElementById('explainer-icon');
+
+    explainerToggle.addEventListener('click', () => {
+      const isOpen = explainerBody.classList.toggle('open');
+      explainerToggle.classList.toggle('open', isOpen);
+      explainerIcon.textContent = isOpen ? '−' : '+';
+      explainerToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    // ─── CARD CUSTOMIZER LOGIC ────────────────────────────────────────
+    function formatCardNum(digits, visible) {
+      const raw = digits.join('');
+      const groups = raw.match(/.{1,4}/g) || [raw];
+      if (visible) return groups.join('  ');
+      return [...groups.slice(0, -1).map(() => '••••'), groups[groups.length - 1]].join('  ');
+    }
+
+    function updateCardPreview() {
+      const name = cardNameInput.value.trim().toUpperCase() || 'YOUR NAME';
+      cardPreviewName.textContent = name;
+      cardPreviewNum.textContent  = formatCardNum(currentCardDigits, showCardNumber.checked);
+    }
+
+    function unlockCardDesigner(digits) {
+      currentCardDigits = [...digits];
+      updateCardPreview();
+      accessGrantedEl.classList.add('visible');
+      setTimeout(() => accessGrantedEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 120);
+    }
+
+    openCardBtn.addEventListener('click', () => {
+      cardSection.classList.add('visible');
+      setTimeout(() => cardSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    });
+
+    cardNameInput.addEventListener('input', updateCardPreview);
+    showCardNumber.addEventListener('change', updateCardPreview);
+
+    // ─── CANVAS PNG DOWNLOAD ─────────────────────────────────────────
+    downloadCardBtn.addEventListener('click', async () => {
+      await document.fonts.ready;
+      const PW = 920, PH = 580; // 2× physical (460×290)
+      const canvas = document.createElement('canvas');
+      canvas.width = PW; canvas.height = PH;
+      const ctx = canvas.getContext('2d');
+      const S = 2; // scale
+
+      // Background
+      ctx.fillStyle = '#0d1017';
+      ctx.fillRect(0, 0, PW, PH);
+
+      // Top mint accent bar
+      ctx.fillStyle = '#4fffb0';
+      ctx.fillRect(0, 0, PW, 4);
+
+      // Brand (top-left)
+      ctx.fillStyle = '#7a9a8a';
+      ctx.font = `${10 * S}px "IBM Plex Mono", monospace`;
+      ctx.fillText('LUHN \u00B7 VERIFIED', 28 * S, 28 * S);
+
+      // Network (top-right)
+      ctx.fillStyle = '#4fffb0';
+      ctx.textAlign = 'right';
+      ctx.font = `bold ${13 * S}px "IBM Plex Mono", monospace`;
+      ctx.fillText('LUHN', (460 - 22) * S, 24 * S);
+      ctx.font = `bold ${10 * S}px "IBM Plex Mono", monospace`;
+      ctx.fillText('CARD', (460 - 22) * S, 38 * S);
+      ctx.textAlign = 'left';
+
+      // Chip
+      const cx = 28 * S, cy = 64 * S, cw = 44 * S, ch = 34 * S;
+      const chipGrad = ctx.createLinearGradient(cx, cy, cx + cw, cy + ch);
+      chipGrad.addColorStop(0,   '#d4a017');
+      chipGrad.addColorStop(0.5, '#b8860b');
+      chipGrad.addColorStop(1,   '#8b6914');
+      ctx.fillStyle = chipGrad;
+      ctx.fillRect(cx, cy, cw, ch);
+      ctx.strokeStyle = 'rgba(150,112,10,0.7)';
+      ctx.lineWidth = S * 0.8;
+      // Chip grid lines
+      ctx.beginPath(); ctx.moveTo(cx + cw / 3, cy); ctx.lineTo(cx + cw / 3, cy + ch); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + (cw * 2) / 3, cy); ctx.lineTo(cx + (cw * 2) / 3, cy + ch); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy + ch / 2); ctx.lineTo(cx + cw, cy + ch / 2); ctx.stroke();
+      ctx.strokeRect(cx + 6 * S, cy + 5 * S, cw - 12 * S, ch - 10 * S);
+
+      // Card number
+      const numText = formatCardNum(currentCardDigits, showCardNumber.checked);
+      ctx.fillStyle = '#f0f0f0';
+      ctx.font = `500 ${20 * S}px "IBM Plex Mono", monospace`;
+      let drawX = 28 * S;
+      for (const ch of numText) {
+        ctx.fillText(ch, drawX, 152 * S);
+        drawX += ctx.measureText(ch).width + S * 1.2;
+      }
+
+      // Cardholder label
+      ctx.fillStyle = '#6b7899';
+      ctx.font = `${8 * S}px "IBM Plex Mono", monospace`;
+      ctx.fillText('CARDHOLDER', 28 * S, 192 * S);
+
+      // Name
+      const nameText = cardNameInput.value.trim().toUpperCase() || 'YOUR NAME';
+      ctx.fillStyle = '#f0f0f0';
+      ctx.font = `500 ${15 * S}px "IBM Plex Mono", monospace`;
+      ctx.fillText(nameText, 28 * S, 212 * S);
+
+      // Valid Thru label
+      ctx.fillStyle = '#6b7899';
+      ctx.font = `${8 * S}px "IBM Plex Mono", monospace`;
+      ctx.fillText('VALID THRU', 28 * S, 240 * S);
+
+      // Expiry
+      ctx.fillStyle = '#f0f0f0';
+      ctx.font = `500 ${13 * S}px "IBM Plex Mono", monospace`;
+      ctx.fillText('12/28', 28 * S, 257 * S);
+
+      // Bottom-right accent mark
+      ctx.fillStyle = '#1e3d30';
+      ctx.font = `bold ${36 * S}px serif`;
+      ctx.textAlign = 'right';
+      ctx.fillText('✷', (460 - 22) * S, (290 - 16) * S);
+      ctx.textAlign = 'left';
+
+      // Trigger download
+      const link = document.createElement('a');
+      link.download = `luhn-card-${nameText.replace(/\s+/g, '-').toLowerCase() || 'card'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  </script>
+</body>
+
+</html>
