@@ -1062,10 +1062,26 @@
     // ─── BEAUTIFUL NUMBERS ─────────────────────────────────────────────────
     // Add your curated valid Luhn numbers here (digits only, no spaces/dashes)
     const BEAUTIFUL_NUMBERS = new Set([
-      // ← Replace / extend this list with your own beautiful numbers
       '4532015112830366',
       '4111111111111111',
       '5500005555555559',
+      
+      // 1. Palindrome (12344321 is mathematically valid Luhn at 8 digits)
+      '12344321',
+      '1234432112344321',
+      
+      // 2. Repeating pattern
+      '1313131313131313',
+      
+      // 3. Sequential run / Ascending clean run
+      '34567890123456',
+      
+      // 4. Mirror halves
+      '1234567912345679',
+      
+      // 5. All same digit
+      '8888888888888888',
+      '0000000000000000'
     ]);
 
     // ─── CARD CUSTOMIZER REFS ────────────────────────────────────────────
@@ -1231,9 +1247,9 @@
 
       const digits = stripInput(raw).split('').map(Number);
 
-      if (digits.length < 13) {
+      if (digits.length < 8) {
         shakeInput();
-        showError('Minimum 13 digits required');
+        showError('Minimum 8 digits required');
         return;
       }
 
