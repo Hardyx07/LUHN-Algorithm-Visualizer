@@ -1,8 +1,16 @@
-function luhn(digits) {
+/**
+ * This script finds "beautiful" card numbers that are valid according to the Luhn algorithm.
+ * Categories include: Palindromes, Repeating Patterns, Sequential Runs, Mirror Halves, and Same Digits.
+ */
+
+// Luhn validation function
+function checkLuhn(cardNumberString) {
   let sum = 0;
-  let rev = [...digits].reverse();
+  // Read right-to-left
+  let rev = cardNumberString.split('').map(Number).reverse();
   for (let i = 0; i < rev.length; i++) {
     let d = rev[i];
+    // Double every second digit (odd indexes)
     if (i % 2 === 1) {
       d = d * 2;
       if (d > 9) d -= 9;
@@ -12,61 +20,74 @@ function luhn(digits) {
   return sum % 10 === 0;
 }
 
-// 1. Palindrome
-for (let i = 10000000; i <= 99999999; i++) {
-   let s = i.toString();
-   let pal = s + s.split('').reverse().join(''); // 16 digits
-   if (luhn(pal.split('').map(Number))) {
-       console.log("Palindrome: " + pal);
-       break;
-   }
+const beautifulNumbers = {
+  "Palindromes": [],
+  "Repeating Patterns": [],
+  "Sequential Runs": [],
+  "Mirror Halves": [],
+  "All Same Digits": []
+};
+
+// 1. Find Palindromes (e.g. 1234567887654321)
+let palCount = 0;
+for (let i = 12340000; i <= 99999999 && palCount < 5; i++) {
+  let s = i.toString();
+  let pal = s + s.split('').reverse().join('');
+  if (checkLuhn(pal)) {
+    beautifulNumbers["Palindromes"].push(pal);
+    palCount++;
+  }
 }
 
-// 2. Repeating pattern 
-for (let i = 1000; i <= 9999; i++) {
-   let s = i.toString().repeat(4); // 16 digits
-   if (luhn(s.split('').map(Number))) {
-       console.log("Repeating: " + s);
-       break;
-   }
+// 2. Find Repeating Patterns (e.g. 1234123412341234)
+let repCount = 0;
+for (let i = 1234; i <= 9999 && repCount < 5; i++) {
+  let s = i.toString().repeat(4);
+  if (checkLuhn(s)) {
+    beautifulNumbers["Repeating Patterns"].push(s);
+    repCount++;
+  }
 }
 
-// 3. Sequential run  (needs 13 to 24 digits per validation rules)
-for (let start = 1; start <= 9; start++) {
-    for (let len = 13; len <= 16; len++) {
-        let s = '';
-        let d = start;
-        for (let i = 0; i < len; i++) {
-            s += (d % 10).toString();
-            d++;
-        }
-        if (luhn(s.split('').map(Number))) {
-            console.log("Sequential: " + s);
-        }
-    }
+// 3. Find Sequential Runs
+const sequences = [
+  "1234567890123456",
+  "2345678901234567",
+  "3456789012345678",
+  "4567890123456789",
+  "5678901234567890"
+];
+for (let seq of sequences) {
+  if (checkLuhn(seq)) {
+    beautifulNumbers["Sequential Runs"].push(seq);
+  }
 }
 
-// 4. Mirror halves
-// first 8 mirror last 8 means simply repeating an 8-digit sequence? "first 8 mirror last 8" implies half 1 equals half 2? Or reversed like palindrome?
-// If "first 8 digits mirror last 8", usually it means AABB or ABAB? Wait. "mirror halves" -> 12345678 12345678? Or 12345678 87654321? 
-// The user has Palindrome as 12344321, so mirror halves must be repeat ABCDABCD?
-for (let i = 10000000; i <= 99999999; i++) {
-   let s = i.toString() + i.toString(); // 16 digits
-   if (luhn(s.split('').map(Number))) {
-       console.log("Mirror halves: " + s);
-       break;
-   }
+// 4. Find Mirror Halves (e.g. 1234567812345678)
+let mirrorCount = 0;
+for (let i = 12345678; i <= 99999999 && mirrorCount < 5; i++) {
+  let s = i.toString() + i.toString();
+  if (checkLuhn(s)) {
+    beautifulNumbers["Mirror Halves"].push(s);
+    mirrorCount++;
+  }
 }
 
-// 5. All same digit
-for (let d = 0; d <= 9; d++) {
-   for (let len = 13; len <= 16; len++) {
-       let s = d.toString().repeat(len);
-       if (luhn(s.split('').map(Number))) {
-           console.log("Same digit: " + s);
-       }
-   }
+// 5. Find All Same Digits (e.g. 5555... or 8888...)
+for (let d = 1; d <= 9; d++) {
+  let s = d.toString().repeat(16);
+  if (checkLuhn(s)) {
+    beautifulNumbers["All Same Digits"].push(s);
+  }
 }
 
-// 6. Ascending + valid
-// ... wait, Sequential run is ascending. What does ascending mean?
+console.log("\n✨ BEAUTIFUL LUHN NUMBERS GENERATED ✨\n");
+for (const [category, arr] of Object.entries(beautifulNumbers)) {
+  console.log(`=== ${category} ===`);
+  if (arr.length === 0) {
+    console.log("  (None found)");
+  } else {
+    arr.forEach(num => console.log(`  ${num}`));
+  }
+  console.log("");
+}
